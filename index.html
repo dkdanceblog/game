@@ -39,6 +39,10 @@
   /* MOBILE: portrait fit + disable browser gestures on canvas */
   #game { height: 100vh; width: auto; max-width: 100vw; touch-action: none; }
 
+
+/* MOBILE SAFE PATCH: portrait fit and disable gestures */
+#game { height: 100vh; width: auto; max-width: 100vw; touch-action: none; }
+
 </style>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
 </head>
@@ -261,6 +265,67 @@ loop();
   } catch(e){ /* noop */ }
 })();
 </script>
+
+<!-- MOBILE SAFE PATCH: tap-to-jump without double sound and with audio unlock -->
+<script>
+(function(){
+  var cvs = document.getElementById('game');
+  if (!cvs) return;
+  var lastTapAt = 0;
+
+  function suppressGhostClick(e){
+    var now = performance.now();
+    if (now - lastTapAt < 160) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }
+  // Capture-phase listener to suppress the synthetic click following pointer/touch
+  document.addEventListener('click', suppressGhostClick, true);
+
+  function onTap(e){
+    lastTapAt = performance.now();
+    // try to unlock existing audioCtx if present
+    try {
+      if (window.audioCtx && typeof window.audioCtx.resume === 'function' && window.audioCtx.state === 'suspended') {
+        window.audioCtx.resume();
+      }
+    } catch(_) {}
+    e.preventDefault();
+    e.stopPropagation();
+    // call existing jump handler if available, else dispatch Space key as fallback
+    try {
+      if (typeof window.doJump === 'function') {
+        window.doJump(e);
+      } else {
+        document.dispatchEvent(new KeyboardEvent('keydown', {key:' ', code:'Space', bubbles:true}));
+      }
+    } catch(_) {}
+  }
+
+  cvs.addEventListener('pointerdown', onTap, {passive:false});
+  cvs.addEventListener('touchstart', onTap, {passive:false});
+})();
+</script>
+
+
+<!-- MOBILE TWEAK: softer gravity + stronger jump (no other changes) -->
+<script>
+(function(){
+  function tunePhysics(){
+    try {
+      if (window.player) {
+        // Make falling slower and jump a bit stronger for touch gameplay
+        window.player.gravity = 0.45;   // was ~0.65 in desktop-style configs
+        window.player.jump    = -14;    // a bit stronger than desktop
+      }
+    } catch(e){}
+  }
+  // run once now and again shortly in case game initializes player later
+  tunePhysics();
+  setTimeout(tunePhysics, 300);
+})();
+</script>
+
 </body>
 </html>
-
