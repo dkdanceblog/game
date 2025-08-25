@@ -47,11 +47,10 @@
 const IS_MOBILE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
   || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-/* >>> УСЛОЖНЕНИЕ: быстрее и больше слов <<< */
-const OBSTACLE_SPEED = IS_MOBILE ? 1.3 : 2.0;   // скорость полёта слов (было 2.0 / 3.0)
-const SPAWN_EVERY    = IS_MOBILE ? 120 : 85;    // чаще спавним (было 140 / 90)
-const SPAWN_BURST_CHANCE = IS_MOBILE ? 0.35 : 0.25; // шанс заспавнить 2 слова сразу
-/* ----------------------------------------- */
+/* >>> ПРАВКИ: ускорили слова и чаще спавним на мобиле <<< */
+const OBSTACLE_SPEED = IS_MOBILE ? 3.5 : 4.5;   // было 1.7
+const SPAWN_EVERY    = IS_MOBILE ? 140 : 90;    // было 150
+/* ----------------------------------------------------------- */
 
 const SCORE_TICK_MS  = IS_MOBILE ? 30  : 33;
 const WIN_SCORE = 5000;
@@ -132,28 +131,18 @@ function updateObstacles(){
   // ИНИЦИАЛЬНЫЙ СПАВН СРАЗУ
   if (updateObstacles.spawnAcc == null) updateObstacles.spawnAcc = SPAWN_EVERY;
 
-  // спавн по времени (+ иногда бурст из 2 слов)
+  // спавн по времени
   updateObstacles.spawnAcc += dtFrames;
-  if (updateObstacles.spawnAcc >= SPAWN_EVERY){
-    const burst = Math.random() < SPAWN_BURST_CHANCE ? 2 : 1;
-    for (let i=0;i<burst;i++){
-      spawnObstacle();
-      // немного «сдвигаем» второе слово по вертикали и X
-      if (i>0 && obstacles.length){
-        const o = obstacles[obstacles.length-1];
-        o.x += 60; // небольшой сдвиг вправо, чтобы не было полного наложения
-        o.baseY = Math.min(cvs.height-120, Math.max(100, o.baseY + (Math.random()<0.5?-70:70)));
-      }
-    }
-    updateObstacles.spawnAcc -= SPAWN_EVERY;
-  }
+  if (updateObstacles.spawnAcc >= SPAWN_EVERY){ spawnObstacle(); updateObstacles.spawnAcc -= SPAWN_EVERY; }
 
   // движение
   obstacles.forEach(o=> o.x -= OBSTACLE_SPEED * dtFrames);
   if(obstacles.length && obstacles[0].x < -400) obstacles.shift();
 }
 function drawObstacles(){
-  ctx.font="42px 'Russo One'";   /* увеличенный размер */
+  /* >>> ПРАВКА: увеличили размер шрифта препятствий <<< */
+  ctx.font="42px 'Russo One'";   /* было 36px */
+  /* ---------------------------------------------------- */
   ctx.textAlign='left'; ctx.textBaseline='alphabetic';
   obstacles.forEach(o=>{
     const y = o.baseY + Math.sin((frame+o.seed)/15)*3;
